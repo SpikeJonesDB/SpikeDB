@@ -1,0 +1,88 @@
+<!doctype html>
+<html>
+<head>
+    <title>Spike Jones Database</title>
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
+    <script src="bower_components/jquery/dist/jquery.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+</head>
+<body>
+<div class="container">
+
+    <div class="page-header text-center">
+        <h1><span class="fa fa-database"></span> Spike Jones Database</h1>
+        <a href="/logout" class="btn btn-default btn-sm"><span class="fa fa-sign-out"></span> Close Session</a>
+    </div>
+
+    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+      <ul class="nav nav-tabs">
+        <li role="presentation" class="active"><a href="audio">Audio</a></li>
+        <li role="presentation"><a href="video">Video</a></li>
+        <li role="presentation"><a href="images">Images</a></li>
+        <li role="presentation"><a href="sheets">Sheet Music</a></li>
+      </ul>
+      <form class="navbar-form navbar-right" role="search">
+        <div class="form-group">
+          <div class="col-xs-6">
+            <select class="form-control">
+              <option>Year</option>
+              <option>Guest Artist</option>
+              <option>Medium</option>
+              <option>Name</option>
+            </select>
+          </div>
+          <div class="col-xs-6">
+            <input type="text" class="form-control" placeholder="Search">
+          </div>
+        </div>
+        <button type="submit" class="btn btn-default">Submit</button>
+      </form>
+    </div><!-- /.navbar-collapse -->
+
+    <div class="row addFiles">
+      <div class="col-xs-12 well">
+        <div class="buttonSection">
+          <button id="addCollection" class="btn btn-default btn-lg"><span class="glyphicon glyphicon-music"></span> Create New Collection</span>
+        </div>
+        <script>
+          $(document).ready(function() {
+            $('#addCollection').click(function() {
+              $('.uploadSection').show();
+            });
+            $('.addFile').click(function() {
+              // add another file upload input
+            });
+          });
+        </script>
+        <div class="uploadSection" style="display:none">
+          <form method="post" action="/addCollection">
+            <div class="form-group row">
+              <div class="col-sm-6">
+                <h2>Collection Information</h2>
+                <input type="text" name="collectionName" class="form-control" placeholder="Collection Name" required>
+                <input type="text" name="artists" class="form-control" placeholder="Artist" required>
+                <input type="text" name="guests" class="form-control" placeholder="Guest Artist(s)">
+                <input type="text" name="year" class="form-control" placeholder="Year" required>
+                <input type="text" name="recordLabel" class="form-control" placeholder="Record Label">
+                <input type="text" name="recordNumber" class="form-control" placeholder="Record Number">
+                <!--<input type="file" name="audioFile" class="form-control" required>-->
+                <!--<textarea name="lyrics" placeholder="Optional Lyrics"></textarea>-->
+                <div class="btn btn-default"><span class="glyphicon glyphicon-plus addFile"></span> Add Another File</div>
+              </div>
+              <div class="col-sm-6">
+                <h2>Collection Art</h2>
+                <input type="file" name="collectionArt" class="form-control">
+              </div>
+            </div>
+            <input type="submit" class="btn btn-success btn-lg">
+          </form>
+        </div>
+        <div class="collectionSection">
+        </div>
+      </div>
+    </div>
+
+</div>
+</body>
+</html>
