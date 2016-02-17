@@ -56,34 +56,19 @@ module.exports = function(app, passport) {
     // we will use route middleware to verify this (the isLoggedIn function)
     app.get('/audio', isLoggedIn, function(req, res, next) {
 
-        // var unfiled = [];
-        // var returnedData;
-        //
-        // request({
-        //   url:'http://dgm3760.tylermaynard.com/api/quotes',
-        //   json: true
-        //   },
-        //   function (error, response, responsebody) {
-        //     console.log(responsebody);
-        //     returnedData = responsebody;
-        // });
+        var returnedData = Collection.find();
 
-        	Collection
-        		.find(function(err, docs) {
-
-            })
-        });
+        console.log("Did Collection.find() and found: ", returnedData);
 
         res.render('audio.ejs', {
             user : req.user, // get the user out of session and pass to template
-            data: returnedData,
-            unfiled: unfiled,
+            collections: returnedData,
         });
     });
 
     var storage = multer.diskStorage({
       destination: function (req, file, cb) {
-        cb(null, '/Users/jeffcarbine/dev/spikedb/archive/music/' + req.body.collectionName);
+        cb(null, '/Users/jeffcarbine/dev/SpikeDB/archive/music/' + req.body.collectionName);
       },
       filename: function (req, file, cb) {
         cb(null, req.body.artist + '.mp4'); // will be altered for each file later
@@ -93,10 +78,12 @@ module.exports = function(app, passport) {
     var upload = multer({ storage: storage });
 
     app.post('/addCollection',
+      upload.single('collectionArt'),
       function(req, res, next) {
         console.log(req.body);
         var newCollection = new Collection({
       		name:req.body.collectionName,
+          art:'archive/music/' + req.body.collectionName + '/art.jpg',
       		artists:req.body.artists,
       		guest:req.body.guests,
       		year:req.body.year,
