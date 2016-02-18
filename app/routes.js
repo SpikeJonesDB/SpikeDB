@@ -56,13 +56,19 @@ module.exports = function(app, passport) {
     // we will use route middleware to verify this (the isLoggedIn function)
     app.get('/audio', isLoggedIn, function(req, res, next) {
 
-        var returnedData = Collection.find();
+        var collections;
 
-        console.log("Did Collection.find() and found: ", returnedData);
+        Collection
+          .find()
+          .exec()
+          .then(function(rows) {
+            console.log(rows);
+            collections = rows;
+          });
 
         res.render('audio.ejs', {
             user : req.user, // get the user out of session and pass to template
-            collections: returnedData,
+            collections: collections,
         });
     });
 
