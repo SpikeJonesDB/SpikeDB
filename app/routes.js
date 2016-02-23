@@ -56,20 +56,17 @@ module.exports = function(app, passport) {
     // we will use route middleware to verify this (the isLoggedIn function)
     app.get('/audio', isLoggedIn, function(req, res, next) {
 
-        var collections;
-
         Collection
           .find()
           .exec()
           .then(function(rows) {
-            console.log(rows);
-            collections = rows;
+            var collections = rows;
+            console.log(collections);
+            res.render('audio.ejs', {
+                user : req.user, // get the user out of session and pass to template
+                data: collections,
+            });
           });
-
-        res.render('audio.ejs', {
-            user : req.user, // get the user out of session and pass to template
-            collections: collections,
-        });
     });
 
     var storage = multer.diskStorage({
@@ -84,7 +81,7 @@ module.exports = function(app, passport) {
     var upload = multer({ storage: storage });
 
     app.post('/addCollection',
-      upload.single('collectionArt'),
+      upload.single('collectionArt'), // not working??
       function(req, res, next) {
         console.log(req.body);
         var newCollection = new Collection({

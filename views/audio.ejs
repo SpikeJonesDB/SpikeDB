@@ -66,10 +66,6 @@
                 <input type="text" name="year" class="form-control" placeholder="Year" required>
                 <input type="text" name="recordLabel" class="form-control" placeholder="Record Label">
                 <input type="text" name="recordNumber" class="form-control" placeholder="Record Number">
-                <!--<input type="file" name="audioFile" class="form-control" required>-->
-                <!--<textarea name="lyrics" placeholder="Optional Lyrics"></textarea>-->
-                <div class="btn btn-default"><span class="glyphicon glyphicon-plus addFile"></span> Add Another File</div>
-              </div>
               <div class="col-sm-6">
                 <h2>Collection Art</h2>
                 <input type="file" name="collectionArt" class="form-control">
@@ -78,11 +74,36 @@
             <input type="submit" class="btn btn-success btn-lg">
           </form>
         </div>
-        <div class="collectionSection">
-        </div>
       </div>
     </div>
-
-</div>
+  </div>
+  <div class="collectionSection">
+    <div class="row">
+      <% for(i = 0; i<data.length; i++) { %>
+        <div class="col-xs-12 col-sm-6 col-md-4 col-lg-3">
+          <img src="<%- data[i].art %>">
+          <div class="info-group">
+            <ul>
+              <li><%= data[i].name %></li>
+              <li><%= data[i].year %></li>
+            </ul>
+          </div>
+          <div class="edit-group" style="display: block">
+            <input type="text" name="collectionName" value="<%- data[i].name %>">
+          </div>
+          <div class="add-track" style="display: block;">
+            <form method="POST" action="/addTrack">
+            <input type="file" name="audioFile" class="form-control" required>
+            <input type="number" name="trackNum" class="form-control" required>
+            <textarea name="lyrics" placeholder="Optional Lyrics"></textarea>
+            </form>
+          </div>
+          <button class='btn btn-info'>Add Track</button>
+          <button class="btn btn-warning">Edit</button>
+          <button class="btn btn-danger">Delete</button>
+        </div>
+      <% } %>
+    </div>
+  </div>
 </body>
 </html>
