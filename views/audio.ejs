@@ -56,51 +56,91 @@
           });
         </script>
         <div class="uploadSection" style="display:none">
-          <form method="post" action="/addCollection">
-            <div class="form-group row">
+          <form method="post" action="/addCollection" enctype="multipart/form-data">
+            <div class="row">
               <div class="col-sm-6">
                 <h2>Collection Information</h2>
-                <input type="text" name="collectionName" class="form-control" placeholder="Collection Name" required>
-                <input type="text" name="artists" class="form-control" placeholder="Artist" required>
-                <input type="text" name="guests" class="form-control" placeholder="Guest Artist(s)">
-                <input type="text" name="year" class="form-control" placeholder="Year" required>
-                <input type="text" name="recordLabel" class="form-control" placeholder="Record Label">
-                <input type="text" name="recordNumber" class="form-control" placeholder="Record Number">
+                <div class="form-group">
+                  <input type="text" name="collectionName" class="form-control" placeholder="Collection Name" required>
+                </div>
+                <div class="form-group">
+                  <input type="text" name="artist" class="form-control" placeholder="Artist" required>
+                </div>
+                <div class="form-group">
+                  <input type="text" name="guests" class="form-control" placeholder="Guest Artist(s)">
+                </div>
+                <div class="form-group">
+                  <input type="text" name="year" class="form-control" placeholder="Year" required>
+                </div>
+                <div class="form-group">
+                  <input type="text" name="recordLabel" class="form-control" placeholder="Record Label">
+                </div>
+                <div class="form-group">
+                  <input type="text" name="recordNumber" class="form-control" placeholder="Record Number">
+                </div>
+              </div>
               <div class="col-sm-6">
                 <h2>Collection Art</h2>
                 <input type="file" name="collectionArt" class="form-control">
               </div>
             </div>
-            <input type="submit" class="btn btn-success btn-lg">
+            <div class="row">
+              <div class="col-sm-12">
+                <input type="submit" class="btn btn-success btn-lg">
+              </div>
+            </div>
           </form>
         </div>
-      </div>
     </div>
   </div>
   <div class="collectionSection">
     <div class="row">
       <% for(i = 0; i<data.length; i++) { %>
-        <div class="col-xs-12 col-sm-6 col-md-4 col-lg-3">
-          <img src="<%- data[i].art %>">
-          <div class="info-group">
-            <ul>
-              <li><%= data[i].name %></li>
-              <li><%= data[i].year %></li>
-            </ul>
-          </div>
-          <div class="edit-group" style="display: block">
-            <input type="text" name="collectionName" value="<%- data[i].name %>">
-          </div>
-          <div class="add-track" style="display: block;">
-            <form method="POST" action="/addTrack">
-            <input type="file" name="audioFile" class="form-control" required>
-            <input type="number" name="trackNum" class="form-control" required>
-            <textarea name="lyrics" placeholder="Optional Lyrics"></textarea>
+        <div class="col-xs-12">
+          <div class="col-xs-12 col-sm-4">
+            <strong>Collection Info</strong>
+            <img class="img-responsive" src="<%- data[i].art %>">
+            <form method="POST" action="/updateCollection">
+              <input type="hidden" name="id" value="<%- data[i]._id %>">
+              <div class="form-group">
+                <input class="form-control" type="text" name="collectionName" value="<%- data[i].name %>">
+              </div>
+              <div class="form-group">
+                <input class="form-control" type="text" name="collectionName" value="<%- data[i].artist %>">
+              </div>
+              <div class="form-group">
+                <input class="form-control" type="text" name="collectionName" value="<%- data[i].guests %>">
+              </div>
+              <div class="form-group">
+                <input class="form-control" type="text" name="collectionName" value="<%- data[i].year %>">
+              </div>
+              <div class="form-group">
+                <input class="form-control" type="text" name="collectionName" value="<%- data[i].label %>">
+              </div>
+              <div class="form-group">
+                <input class="form-control" type="text" name="collectionName" value="<%- data[i].recordNumber %>">
+              </div>
+              <button type="submit" class="btn btn-primary btn-sm">Update Collection Info</button>
             </form>
           </div>
-          <button class='btn btn-info'>Add Track</button>
-          <button class="btn btn-warning">Edit</button>
-          <button class="btn btn-danger">Delete</button>
+          <div class="col-xs-12 col-sm-4">
+            <strong>Tracks</strong>
+          </div>
+          <div class="col-xs-12 col-sm-4">
+            <strong>Add Track</strong>
+            <form method="POST" action="/addTrack">
+              <div class="form-group">
+                <input type="file" name="audioFile" required>
+              </div>
+              <div class="form-group">
+                <input class="form-control" type="text" name="trackName" placeholder="Track Name" required>
+              </div>
+              <div class="form-group">
+                <textarea class="form-control" name="lyrics" placeholder="Optional Lyrics"></textarea>
+              </div>
+              <button class='btn btn-info btn-sm'>Add Track</button>
+            </form>
+          </div>
         </div>
       <% } %>
     </div>

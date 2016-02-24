@@ -3,6 +3,7 @@ var fs = require('fs');
 var multer = require('multer');
 var mongoose = require('mongoose');
 var Collection = require('./models/collection');
+var mkdirp = require('mkdirp');
 
 // app/routes.js
 module.exports = function(app, passport) {
@@ -71,10 +72,15 @@ module.exports = function(app, passport) {
 
     var storage = multer.diskStorage({
       destination: function (req, file, cb) {
-        cb(null, '/Users/jeffcarbine/dev/SpikeDB/archive/music/' + req.body.collectionName);
+        var collectionName = (req.body.collectionName).replace(/ /g,"_");
+        var destination = '/Users/jeffcarbine/dev/SpikeDB/app/archive/music/' + collectionName;
+        mkdirp(destination, function (err) {
+          if (err) console.error(err);
+        });
+        cb(null, destination);
       },
       filename: function (req, file, cb) {
-        cb(null, req.body.artist + '.mp4'); // will be altered for each file later
+        cb(null, 'art.jpg'); // will be altered for each file later
       }
     });
 
@@ -83,12 +89,13 @@ module.exports = function(app, passport) {
     app.post('/addCollection',
       upload.single('collectionArt'), // not working??
       function(req, res, next) {
+        console.log(req);
         console.log(req.body);
         var newCollection = new Collection({
       		name:req.body.collectionName,
-          art:'archive/music/' + req.body.collectionName + '/art.jpg',
-      		artists:req.body.artists,
-      		guest:req.body.guests,
+          art: (req.body.collectionName).replace(/ /g,"_") + '/art.jpg',
+      		artist:req.body.artist,
+      		guests:req.body.guests,
       		year:req.body.year,
           label:req.body.recordLabel,
       		recordNumber:req.body.recordNumber,
@@ -104,7 +111,35 @@ module.exports = function(app, passport) {
       }
     );
 
-    app.post('/editCollection',
+    app.post('/updateCollection',
+    function(req, res, next) {
+      var id = req.body.id;
+
+    	Collection
+    		.findOneAndUpdate({
+    			_id: id,
+    		},{
+    			$set: {
+            name:req.body.collectionName,
+        		artist:req.body.artist,
+        		guests:req.body.guests,
+        		year:req.body.year,
+            label:req.body.recordLabel,
+        		recordNumber:req.body.recordNumber,
+          },
+    		},{
+    			new: true
+    		})
+    		.then(function(err, doc){
+          if(err) {
+          	return next(err);
+          } else {
+            res.redirect('/audio');
+          }
+        });
+    });
+
+    app.post('/addTrack',
       upload.single('audioFile'),
       function(req,res){
         console.log(req.body);
