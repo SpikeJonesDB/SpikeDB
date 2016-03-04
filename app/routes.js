@@ -3,6 +3,7 @@ var fs = require('fs');
 var multer = require('multer');
 var mongoose = require('mongoose');
 var Collection = require('./models/collection');
+var Tracks = require('./models/tracks');
 var mkdirp = require('mkdirp');
 
 // app/routes.js
@@ -51,10 +52,9 @@ module.exports = function(app, passport) {
 
 
     // =====================================
-    // AUDIO PAGE =====================
+    // AUDIO PAGE ==========================
     // =====================================
-    // we will want this protected so you have to be logged in to visit
-    // we will use route middleware to verify this (the isLoggedIn function)
+
     app.get('/audio', isLoggedIn, function(req, res, next) {
 
         Collection
@@ -62,36 +62,48 @@ module.exports = function(app, passport) {
           .exec()
           .then(function(rows) {
             var collections = rows;
-            console.log(collections);
             res.render('audio.ejs', {
-                user : req.user, // get the user out of session and pass to template
                 data: collections,
             });
           });
     });
 
-    var storage = multer.diskStorage({
+    var imageStorage = multer.diskStorage({
       destination: function (req, file, cb) {
         var collectionName = (req.body.collectionName).replace(/ /g,"_");
-        var destination = '/Users/jeffcarbine/dev/SpikeDB/app/archive/music/' + collectionName;
+        var destination = '/Users/jeffcarbine/dev/SpikeDB/archive/music/' + collectionName;
         mkdirp(destination, function (err) {
           if (err) console.error(err);
         });
         cb(null, destination);
       },
       filename: function (req, file, cb) {
-        cb(null, 'art.jpg'); // will be altered for each file later
+        cb(null, 'art.jpg');
       }
     });
 
-    var upload = multer({ storage: storage });
+    var audioStorage = multer.diskStorage({
+      destination: function (req, file, cb) {
+        var collectionName = (req.body.collectionName).replace(/ /g,"_");
+        var destination = '/Users/jeffcarbine/dev/SpikeDB/archive/music/' + collectionName;
+        mkdirp(destination, function (err) {
+          if (err) console.error(err);
+        });
+        cb(null, destination);
+      },
+      filename: function (req, file, cb) {
+        cb(null, (req.body.trackName).replace(/ /g,"_") + '.jpg');
+      }
+    });
+
+    var uploadArt = multer({ storage: imageStorage });
+    var uploadAudio = multer({ stoarge: audioStorage});
 
     app.post('/addCollection',
-      upload.single('collectionArt'), // not working??
+      uploadArt.single('collectionArt'),
       function(req, res, next) {
-        console.log(req);
-        console.log(req.body);
         var newCollection = new Collection({
+          type:req.body.collectionType,
       		name:req.body.collectionName,
           art: (req.body.collectionName).replace(/ /g,"_") + '/art.jpg',
       		artist:req.body.artist,
@@ -99,12 +111,12 @@ module.exports = function(app, passport) {
       		year:req.body.year,
           label:req.body.recordLabel,
       		recordNumber:req.body.recordNumber,
-      		tracks: [],
       	});
       	newCollection.save(function(err, doc){
           if(err) {
           	return next(err);
           } else {
+            console.log(res.body);
             res.redirect('/audio');
           }
         });
@@ -114,7 +126,7 @@ module.exports = function(app, passport) {
     app.post('/updateCollection',
     function(req, res, next) {
       var id = req.body.id;
-
+      console.log(req.body);
     	Collection
     		.findOneAndUpdate({
     			_id: id,
@@ -130,7 +142,7 @@ module.exports = function(app, passport) {
     		},{
     			new: true
     		})
-    		.then(function(err, doc){
+    		.exec(function(err, doc){
           if(err) {
           	return next(err);
           } else {
@@ -140,18 +152,57 @@ module.exports = function(app, passport) {
     });
 
     app.post('/addTrack',
-      upload.single('audioFile'),
-      function(req,res){
-        console.log(req.body);
-        res.status(204).end();
+      uploadAudio.single('audioFile'),
+      function(req, res, next) {
+        Tracks.count({collectionID: req.body.id}, function (err, count){
+          if(count > 0){
+            Tracks
+              .findOneAndUpdate({
+                collectionID: req.body.id,
+              },{
+                $push: {
+                  tracks: [
+                    {
+                      title: req.body.trackTitle,
+                      lyrics: req.body.trackLyrics,
+                    }
+                  ]
+                }
+              },{
+                new: true
+              })
+              .exec(function(err, doc){
+                if(err) {
+                  return next(err);
+                } else {
+                  res.redirect('/audio');
+                }
+              });
+            } else {
+              var newTracks = new Tracks({
+                collectionID: req.body.id,
+                tracks: [{
+                  title: req.body.trackTitle,
+                  lyrics: req.body.trackLyrics,
+                }]
+              });
+              newTracks.save(function(err, doc){
+                if(err) {
+                  return next(err);
+                } else {
+                  res.redirect('/audio');
+                }
+              });
+            }
+
+        });
       }
     );
 
     // =====================================
-    // VIDEO PAGE =====================
+    // VIDEO PAGE ==========================
     // =====================================
-    // we will want this protected so you have to be logged in to visit
-    // we will use route middleware to verify this (the isLoggedIn function)
+
     app.get('/video', isLoggedIn, function(req, res) {
 
         var unfiled = [];
@@ -200,10 +251,9 @@ module.exports = function(app, passport) {
     });
 
     // =====================================
-    // SHEETS PAGE =====================
+    // SHEETS PAGE =========================
     // =====================================
-    // we will want this protected so you have to be logged in to visit
-    // we will use route middleware to verify this (the isLoggedIn function)
+
     app.get('/sheets', isLoggedIn, function(req, res) {
 
         var unfiled = [];
@@ -223,29 +273,6 @@ module.exports = function(app, passport) {
             data: returnedData,
             unfiled: unfiled,
         });
-    });
-
-    // =====================================
-    // READ-DIR-FILES ======================
-    // =====================================
-    // we will want this protected so you have to be logged in to visit
-    // we will use route middleware to verify this (the isLoggedIn function)
-    app.post('/readdir', isLoggedIn, function(req, res) {
-
-      // When posting to this route (which will happen when loading profile)
-      // the directory will be read
-
-    });
-
-    // =====================================
-    // MODIFY METADATA =====================
-    // =====================================
-    // we will want this protected so you have to be logged in to visit
-    // we will use route middleware to verify this (the isLoggedIn function)
-    app.post('/readdir', isLoggedIn, function(req, res) {
-
-      //
-
     });
 
     // =====================================
