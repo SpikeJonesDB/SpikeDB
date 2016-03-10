@@ -3,7 +3,7 @@ var mongoose = require('mongoose');
 var tracksSchema = mongoose.Schema({
   collectionID      : String,
   tracks            : [{
-    title  : String,
+    title       : String,
     lyrics      : String
   }]
 });

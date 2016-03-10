@@ -5,6 +5,7 @@ var mongoose = require('mongoose');
 var Collection = require('./models/collection');
 var Tracks = require('./models/tracks');
 var mkdirp = require('mkdirp');
+var rmdir = require('rimraf');
 
 // app/routes.js
 module.exports = function(app, passport) {
@@ -56,16 +57,18 @@ module.exports = function(app, passport) {
     // =====================================
 
     app.get('/audio', isLoggedIn, function(req, res, next) {
-
-        Collection
-          .find()
-          .exec()
-          .then(function(rows) {
-            var collections = rows;
-            res.render('audio.ejs', {
-                data: collections,
-            });
-          });
+      Promise.all([
+        Collection.find().exec(),
+        Tracks.find().exec()
+      ]).then(function(data) {
+        var collections = data[0];
+        var tracks = data[1];
+        console.log('Tracks: ' + tracks);
+        res.render('audio.ejs', {
+            collections: collections,
+            tracks: tracks,
+        });
+      });
     });
 
     var imageStorage = multer.diskStorage({
@@ -92,7 +95,8 @@ module.exports = function(app, passport) {
         cb(null, destination);
       },
       filename: function (req, file, cb) {
-        cb(null, (req.body.trackName).replace(/ /g,"_") + '.jpg');
+        // cb(null, (req.body.trackTitle).replace(/ /g,"_") + '.mp3');
+        cb(null, 'track.mp3');
       }
     });
 
@@ -146,9 +150,24 @@ module.exports = function(app, passport) {
           if(err) {
           	return next(err);
           } else {
-            res.redirect('/audio');
+            res.redirect('/audio#' + req.body.id);
           }
         });
+    });
+
+    app.post('/deleteCollection',
+    function(req, res, next) {
+      rmdir('/Users/jeffcarbine/dev/SpikeDB/archive/music/' + req.body.collectionName, function(err) {
+        if (err) throw err;
+        console.log(req.body.collectionName + ' and all the files associated with it have been deleted.');
+      });
+
+      Promise.all([
+        Collection.find({'_id':req.body.collectionID}).remove().exec(),
+        Tracks.find({'collectionID':req.body.collectionID}).remove().exec()
+      ]).then(function(data) {
+        res.redirect('/audio');
+      });
     });
 
     app.post('/addTrack',
@@ -161,12 +180,11 @@ module.exports = function(app, passport) {
                 collectionID: req.body.id,
               },{
                 $push: {
-                  tracks: [
+                  tracks:
                     {
                       title: req.body.trackTitle,
                       lyrics: req.body.trackLyrics,
                     }
-                  ]
                 }
               },{
                 new: true
@@ -190,7 +208,7 @@ module.exports = function(app, passport) {
                 if(err) {
                   return next(err);
                 } else {
-                  res.redirect('/audio');
+                  res.redirect('/audio#' + req.body.id);
                 }
               });
             }
@@ -199,29 +217,57 @@ module.exports = function(app, passport) {
       }
     );
 
+    app.post('/updateTrack',
+      uploadAudio.single('audioFile'),
+      function(req, res, next) {
+            Tracks
+              .findOneAndUpdate({
+                'tracks._id': req.body.trackID,
+              },{
+                $set: {
+                    'tracks.$.title' : req.body.trackName,
+                    'tracks.$.lyrics' : req.body.trackLyrics,
+                }
+              },{
+                new: true
+              })
+              .exec(function(err, doc){
+                if(err) {
+                  return next(err);
+                } else {
+                  res.redirect('/audio');
+                }
+              });
+            });
+
+      app.post('/deleteTrack',
+        function(req, res, next) {
+              Tracks
+                .update({
+                  'collectionID' : req.body.collectionID
+                },{
+                  $pull: {
+                    'tracks': {
+                      "_id" : req.body.trackID
+                    }
+                  }
+                })
+                .exec(function(err, doc){
+                  if(err) {
+                    return next(err);
+                  } else {
+                    res.redirect('/audio');
+                  }
+                });
+              });
+
     // =====================================
     // VIDEO PAGE ==========================
     // =====================================
 
     app.get('/video', isLoggedIn, function(req, res) {
 
-        var unfiled = [];
-        var returnedData;
-
-        request({
-          url:'http://dgm3760.tylermaynard.com/api/quotes',
-          json: true
-          },
-          function (error, response, responsebody) {
-            console.log(responsebody);
-            returnedData = responsebody;
-        });
-
-        res.render('video.ejs', {
-            user : req.user, // get the user out of session and pass to template
-            data: returnedData,
-            unfiled: unfiled,
-        });
+        res.render('video.ejs');
     });
 
     // =====================================
@@ -231,23 +277,7 @@ module.exports = function(app, passport) {
     // we will use route middleware to verify this (the isLoggedIn function)
     app.get('/images', isLoggedIn, function(req, res) {
 
-        var unfiled = [];
-        var returnedData;
-
-        request({
-          url:'http://dgm3760.tylermaynard.com/api/quotes',
-          json: true
-          },
-          function (error, response, responsebody) {
-            console.log(responsebody);
-            returnedData = responsebody;
-        });
-
-        res.render('images.ejs', {
-            user : req.user, // get the user out of session and pass to template
-            data: returnedData,
-            unfiled: unfiled,
-        });
+        res.render('images.ejs');
     });
 
     // =====================================
@@ -256,23 +286,26 @@ module.exports = function(app, passport) {
 
     app.get('/sheets', isLoggedIn, function(req, res) {
 
-        var unfiled = [];
-        var returnedData;
+        res.render('sheets.ejs');
+    });
 
-        request({
-          url:'http://dgm3760.tylermaynard.com/api/quotes',
-          json: true
-          },
-          function (error, response, responsebody) {
-            console.log(responsebody);
-            returnedData = responsebody;
-        });
+    // =====================================
+    // API ENDPOINTS========================
+    // =====================================
+    app.get('/retrieve/collections', function(req, res) {
+      // return all collection data
+    });
 
-        res.render('sheets.ejs', {
-            user : req.user, // get the user out of session and pass to template
-            data: returnedData,
-            unfiled: unfiled,
-        });
+    app.get('/retrieve/videos', function(req, res) {
+      // return all video data
+    });
+
+    app.get('/retrieve/images', function(req, res) {
+      // return all image data
+    });
+
+    app.get('/retrieve/sheets', function(req, res) {
+      // return all sheet music data
     });
 
     // =====================================

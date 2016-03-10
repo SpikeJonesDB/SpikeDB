@@ -8,7 +8,7 @@ var collectionSchema = mongoose.Schema({
   guests        : String,
   year          : Number,
   label         : String,
-  recordNumber  : Number,
+  recordNumber  : String,
   tracksID      : String,
 });
 
