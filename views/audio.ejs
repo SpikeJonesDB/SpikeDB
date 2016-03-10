@@ -174,13 +174,13 @@
               <input type="hidden" name="id" value="<%- collections[i]._id %>">
               <input type="hidden" name="collectionName" value="<%- collections[i].name %>">
               <div class="form-group">
-                <input type="file" name="audioFile" required>
-              </div>
-              <div class="form-group">
-                <input class="form-control" type="text" name="trackTitle" placeholder="Track Name" required>
+                <input class="form-control" type="text" name="trackName" placeholder="Track Name" required>
               </div>
               <div class="form-group">
                 <textarea class="form-control" name="trackLyrics" placeholder="Optional Lyrics"></textarea>
+              </div>
+              <div class="form-group">
+                <input type="file" name="audioFile" required>
               </div>
               <button class='btn btn-info btn-sm'>Add Track</button>
             </form>

@@ -7,6 +7,8 @@ var Tracks = require('./models/tracks');
 var mkdirp = require('mkdirp');
 var rmdir = require('rimraf');
 
+var appDirectory = "/Users/jeffcarbine/dev/SpikeDB";
+
 // app/routes.js
 module.exports = function(app, passport) {
 
@@ -71,45 +73,34 @@ module.exports = function(app, passport) {
       });
     });
 
-    var imageStorage = multer.diskStorage({
+    var storage = multer.diskStorage({
       destination: function (req, file, cb) {
         var collectionName = (req.body.collectionName).replace(/ /g,"_");
-        var destination = '/Users/jeffcarbine/dev/SpikeDB/archive/music/' + collectionName;
+        var destination = appDirectory + '/archive/music/' + collectionName;
         mkdirp(destination, function (err) {
           if (err) console.error(err);
         });
         cb(null, destination);
       },
       filename: function (req, file, cb) {
-        cb(null, 'art.jpg');
+        var filetype = file.mimetype;
+        var ext = filetype.substring(filetype.indexOf('/')+1);
+        if(ext == 'jpeg' || ext == 'jpg') {
+          cb(null, 'art.' + ext);
+        } else if (ext == 'mp3') {
+          cb(null, (req.body.trackName).replace(/ /g,"_") + "." + ext)
+        }
       }
     });
-
-    var audioStorage = multer.diskStorage({
-      destination: function (req, file, cb) {
-        var collectionName = (req.body.collectionName).replace(/ /g,"_");
-        var destination = '/Users/jeffcarbine/dev/SpikeDB/archive/music/' + collectionName;
-        mkdirp(destination, function (err) {
-          if (err) console.error(err);
-        });
-        cb(null, destination);
-      },
-      filename: function (req, file, cb) {
-        // cb(null, (req.body.trackTitle).replace(/ /g,"_") + '.mp3');
-        cb(null, 'track.mp3');
-      }
-    });
-
-    var uploadArt = multer({ storage: imageStorage });
-    var uploadAudio = multer({ stoarge: audioStorage});
+    var upload = multer({ storage: storage });
 
     app.post('/addCollection',
-      uploadArt.single('collectionArt'),
+      upload.single('collectionArt'),
       function(req, res, next) {
         var newCollection = new Collection({
           type:req.body.collectionType,
       		name:req.body.collectionName,
-          art: (req.body.collectionName).replace(/ /g,"_") + '/art.jpg',
+          art: (req.body.collectionName).replace(/ /g,"_") + '/art.jpeg',
       		artist:req.body.artist,
       		guests:req.body.guests,
       		year:req.body.year,
@@ -171,7 +162,7 @@ module.exports = function(app, passport) {
     });
 
     app.post('/addTrack',
-      uploadAudio.single('audioFile'),
+      upload.single('audioFile'),
       function(req, res, next) {
         Tracks.count({collectionID: req.body.id}, function (err, count){
           if(count > 0){
@@ -182,7 +173,7 @@ module.exports = function(app, passport) {
                 $push: {
                   tracks:
                     {
-                      title: req.body.trackTitle,
+                      title: req.body.trackName,
                       lyrics: req.body.trackLyrics,
                     }
                 }
@@ -200,7 +191,7 @@ module.exports = function(app, passport) {
               var newTracks = new Tracks({
                 collectionID: req.body.id,
                 tracks: [{
-                  title: req.body.trackTitle,
+                  title: req.body.trackName,
                   lyrics: req.body.trackLyrics,
                 }]
               });
@@ -218,7 +209,7 @@ module.exports = function(app, passport) {
     );
 
     app.post('/updateTrack',
-      uploadAudio.single('audioFile'),
+      upload.single('audioFile'),
       function(req, res, next) {
             Tracks
               .findOneAndUpdate({
