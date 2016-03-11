@@ -3,7 +3,6 @@ var mongoose = require('mongoose');
 var collectionSchema = mongoose.Schema({
   type          : String,
   name          : String,
-  art           : String,
   artist        : String,
   guests        : String,
   year          : Number,

@@ -120,6 +120,11 @@ module.exports = function(app, passport) {
 
     app.post('/updateCollection',
     function(req, res, next) {
+      var prevDir = appDirectory + '/archive/music/' + (req.body.prevCollectionName).replace(/ /g,"_");
+      var currDir = appDirectory + '/archive/music/' + (req.body.collectionName).replace(/ /g,"_");
+      fs.rename(prevDir, currDir, function (err) {
+        if (err) throw err;
+      });
       var id = req.body.id;
       console.log(req.body);
     	Collection
@@ -148,7 +153,7 @@ module.exports = function(app, passport) {
 
     app.post('/deleteCollection',
     function(req, res, next) {
-      rmdir('/Users/jeffcarbine/dev/SpikeDB/archive/music/' + req.body.collectionName, function(err) {
+      rmdir('/Users/jeffcarbine/dev/SpikeDB/archive/music/' + (req.body.collectionName).replace(/ /g,"_"), function(err) {
         if (err) throw err;
         console.log(req.body.collectionName + ' and all the files associated with it have been deleted.');
       });
@@ -211,6 +216,11 @@ module.exports = function(app, passport) {
     app.post('/updateTrack',
       upload.single('audioFile'),
       function(req, res, next) {
+        var prevTrack = appDirectory + '/archive/music/' + (req.body.collectionName).replace(/ /g,"_") + '/' + req.body.prevTrackName.replace(/ /g,"_") + '.mp3';
+        var currTrack = appDirectory + '/archive/music/' + (req.body.collectionName).replace(/ /g,"_") + '/' + req.body.trackName.replace(/ /g,"_") + '.mp3';
+        fs.rename(prevTrack, currTrack, function (err) {
+          if (err) throw err;
+        });
             Tracks
               .findOneAndUpdate({
                 'tracks._id': req.body.trackID,
@@ -233,24 +243,26 @@ module.exports = function(app, passport) {
 
       app.post('/deleteTrack',
         function(req, res, next) {
-              Tracks
-                .update({
-                  'collectionID' : req.body.collectionID
-                },{
-                  $pull: {
-                    'tracks': {
-                      "_id" : req.body.trackID
-                    }
-                  }
-                })
-                .exec(function(err, doc){
-                  if(err) {
-                    return next(err);
-                  } else {
-                    res.redirect('/audio');
-                  }
-                });
-              });
+          var trackFile = appDirectory + '/archive/music/' + (req.body.collectionName).replace(/ /g,"_") + '/' + (req.body.trackName).replace(/ /g,"_") + '.mp3';
+          fs.unlink(trackFile);
+          Tracks
+            .update({
+              'collectionID' : req.body.collectionID
+            },{
+              $pull: {
+                'tracks': {
+                  "_id" : req.body.trackID
+                }
+              }
+            })
+            .exec(function(err, doc){
+              if(err) {
+                return next(err);
+              } else {
+                res.redirect('/audio');
+              }
+            });
+          });
 
     // =====================================
     // VIDEO PAGE ==========================
