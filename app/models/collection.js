@@ -8,7 +8,7 @@ var collectionSchema = mongoose.Schema({
   year          : Number,
   label         : String,
   recordNumber  : String,
-  tracksID      : String,
+  tracks        : Array
 });
 
 module.exports = mongoose.model('Collection', collectionSchema);

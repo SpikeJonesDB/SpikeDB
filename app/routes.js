@@ -70,8 +70,6 @@ module.exports = function(app, passport) {
         res.render('audio.ejs', { // passing the returned data to the response body
             collections: collections,
             tracks: tracks,
-            collectionMessage: req.flash('collectionMessage'),
-            trackMessage: req.flash('trackMessage'),
         });
       });
     });
@@ -129,6 +127,7 @@ module.exports = function(app, passport) {
                 year:req.body.year,
                 label:req.body.recordLabel,
                 recordNumber:req.body.recordNumber,
+                tracks: [],
               });
               newCollection.save(function(err, doc){
                 if(err) {
@@ -151,11 +150,9 @@ module.exports = function(app, passport) {
     function(req, res, next) {
       // match the collection via id instead of name so there
       // are no conflicts if the name changes
-      var id = req.body.id;
-      console.log(req.body);
     	Collection
     		.findOneAndUpdate({
-    			_id: id,
+    			_id: req.body.id,
     		},{
     			$set: {
             name:req.body.collectionName,
@@ -164,6 +161,7 @@ module.exports = function(app, passport) {
         		year:req.body.year,
             label:req.body.recordLabel,
         		recordNumber:req.body.recordNumber,
+            tracks:[],
           },
     		},{
     			new: true
@@ -184,7 +182,7 @@ module.exports = function(app, passport) {
     function(req, res, next) {
       // remove the directory completely, which also removes all
       // .mp3 and .jpeg files
-      rmdir('/Users/jeffcarbine/dev/SpikeDB/archive/music/' + (req.body.collectionName).replace(/ /g,"_"), function(err) {
+      rmdir('/Users/jeffcarbine/dev/SpikeDB/archive/music/' + req.body.collectionID, function(err) {
         if (err) throw err;
         console.log(req.body.collectionName + ' and all the files associated with it have been deleted.');
       });
@@ -210,47 +208,28 @@ module.exports = function(app, passport) {
         // this checks of the tracks already exists or not
         Tracks.count({collectionID: req.body.id}, function (err, count){
           if(count > 0){ // if the tracks already exists
-            Tracks.find({collectionID: req.body.id}).exec() // find the tracks
-            .then(function(tracks) {    // check that the tracks don't already
-              var currTrackNames = [];  // have a track by that same name
-              for(i=0;i<tracks[0].tracks.length;i++) {
-                console.log(tracks[0].tracks[i].title);
-                currTrackNames.push(tracks[0].tracks[i].title);
-              }
-              return currTrackNames;
-            })
-            .then(function(currTrackNames) {
-              // if there are no conflicts with track names
-              if(currTrackNames.indexOf(req.body.trackName) === -1) {
-                Tracks // get the correct tracks
-                  .findOneAndUpdate({
-                    collectionID: req.body.id,
-                  },{
-                    $push: { // push another track entry onto the tracks array
-                      tracks:
-                        {
-                          _id: req.newMongoId,
-                          title: req.body.trackName,
-                          lyrics: req.body.trackLyrics,
-                        }
+            Tracks
+              .findOneAndUpdate({
+                collectionID: req.body.id,
+              },{
+                $push: { // push another track entry onto the tracks array
+                  tracks:
+                    {
+                      _id: req.newMongoId,
+                      title: req.body.trackName,
+                      lyrics: req.body.trackLyrics,
                     }
-                  },{
-                    new: true
-                  })
-                  .exec(function(err, doc){
-                    if(err) {
-                      return next(err);
-                    } else {
-                      res.redirect('/audio');
-                    }
-                  });
-                } else {
-                  // if there is a track with the same name as they are trying
-                  // to save, this message is sent
-                  req.flash('trackMessage', "You can't have two tracks with the same name in the same collection. Please check your track names and try again.");
-                  res.redirect('/audio#' + req.body.id);
                 }
-            });
+              },{
+                new: true
+              })
+              .exec(function(err, doc){
+                if(err) {
+                  return next(err);
+                } else {
+                  res.redirect('/audio');
+                }
+              });
           } else { // if the tracks does not exist yet for this collection
               var newTracks = new Tracks({ // create it
                 collectionID: req.body.id,
@@ -279,40 +258,34 @@ module.exports = function(app, passport) {
     app.post('/updateTrack',
       upload.single('audioFile'), // see line 79
       function(req, res, next) {
-        // rename the track file if the track title changes
-        var prevTrack = appDirectory + '/archive/music/' + (req.body.collectionName).replace(/ /g,"_") + '/' + req.body.prevTrackName.replace(/ /g,"_") + '.mp3';
-        var currTrack = appDirectory + '/archive/music/' + (req.body.collectionName).replace(/ /g,"_") + '/' + req.body.trackName.replace(/ /g,"_") + '.mp3';
-        fs.rename(prevTrack, currTrack, function (err) {
-          if (err) throw err;
+        Tracks
+          .findOneAndUpdate({
+            // get the track by ID so there's no conflict if the
+            // name of the track changes
+            'tracks._id': req.body.trackID,
+          },{
+            $set: { // update the info
+                'tracks.$.title' : req.body.trackName,
+                'tracks.$.lyrics' : req.body.trackLyrics,
+            }
+          },{
+            new: true
+          })
+          .exec(function(err, doc){
+            if(err) {
+              return next(err);
+            } else {
+              // refresh the page
+              res.redirect('/audio');
+            }
+          });
         });
-            Tracks
-              .findOneAndUpdate({
-                // get the track by ID so there's no conflict if the
-                // name of the track changes
-                'tracks._id': req.body.trackID,
-              },{
-                $set: { // update the info
-                    'tracks.$.title' : req.body.trackName,
-                    'tracks.$.lyrics' : req.body.trackLyrics,
-                }
-              },{
-                new: true
-              })
-              .exec(function(err, doc){
-                if(err) {
-                  return next(err);
-                } else {
-                  // refresh the page
-                  res.redirect('/audio');
-                }
-              });
-            });
 
       // remove track info from DB and delete the file
       app.post('/deleteTrack',
         function(req, res, next) {
           // find the file and delete it
-          var trackFile = appDirectory + '/archive/music/' + (req.body.collectionName).replace(/ /g,"_") + '/' + (req.body.trackName).replace(/ /g,"_") + '.mp3';
+          var trackFile = appDirectory + '/archive/music/' + req.body.collectionID + '/' + req.body.trackID + '.mp3';
           fs.unlink(trackFile);
           // remove the entry from the DB
           Tracks
@@ -366,9 +339,31 @@ module.exports = function(app, passport) {
     // =====================================
     // API ENDPOINTS========================
     // =====================================
-    app.get('/retrieve/collections', function(req, res) {
-      // return all collection data
-    });
+    app.get('/retrieve/collections', function(req, res, next) {
+      Promise.all([
+        Collection.find().exec(), // pull all data from collections and
+        Tracks.find().exec()      // pull all datay from respective tracks
+      ]).then(function(data) {
+        var collectionData = [];
+        var collectionArr = data[0];
+        var tracksArr = data[1];
+        for(var i=0;i < collectionArr.length; i++) {
+          collectionData.push(collectionArr[i]);
+          for(var e=0;e < tracksArr.length; e++) {
+            if(tracksArr[e].collectionID == collectionArr[i]._id) {
+              console.log('They match!');
+              console.log(collectionArr[i].tracks);
+              console.log(tracksArr[e].tracks);
+              Array.prototype.push.apply(collectionArr[i].tracks, tracksArr[e].tracks);
+            }
+          }
+        }
+        return collectionData;
+        })
+        .then(function(collectionData) {
+          res.jsonp(collectionData);
+        });
+      });
 
     app.get('/retrieve/videos', function(req, res) {
       // return all video data
