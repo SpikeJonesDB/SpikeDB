@@ -5,10 +5,11 @@ var collectionSchema = mongoose.Schema({
   name          : String,
   artist        : String,
   guests        : String,
-  year          : Number,
+  year          : String,
   label         : String,
   recordNumber  : String,
-  tracks        : Array
+  tracks        : Array,
+  download      : Boolean
 });
 
 module.exports = mongoose.model('Collection', collectionSchema);

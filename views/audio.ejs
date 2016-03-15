@@ -96,11 +96,29 @@
               </div>
               <button class="btn btn-default btn-sm">Update Art</button>
             </form>
+            <br/>
+            <strong>Downloadable Zip File</strong>
             <hr/>
-            <form method="POST" action="/deleteCollection">
-              <input type="hidden" value="<%- collections[i]._id %>" name="collectionID">
-              <button class="btn btn-danger" type="submit"><span class="glyphicon glyphicon-warning-sign"></span> Delete Collection &amp; Files</button>
-            </form>
+            <div class="row">
+              <form method="POST" action="/addZipFile" enctype="multipart/form-data">
+                <input type="hidden" value="<%- collections[i]._id %>" name="collectionID">
+                <% if(collections[i].download == true) { %>
+                  <div class="alert alert-success">This collecion has a zip file.</div>
+                <% } else { %>
+                  <div class="alert alert-warning">There is no zip file for this collection.</div>
+                <% } %>
+                <div class="form-group">
+                  <input type="file" name="zipFile" required>
+                </div>
+                <button class="btn btn-success btn-sm col-xs-6" type="submit">Upload File</button>
+              </form>
+              <% if(collections[i].download == true) { %>
+              <form method="POST" action="/removeZipFile">
+                <input type="hidden" value="<%- collections[i]._id %>" name="collectionID">
+                <button class="btn btn-warning btn-sm col-xs-6">Delete File</button>
+              </form>
+              <% } %>
+            </div>
           </div>
           <div class="col-xs-12 col-sm-3">
             <strong>Info</strong>
@@ -117,22 +135,22 @@
               </div>
               <div class="form-group">
                 <input type="hidden" name="prevCollectionName" value="<%- collections[i].name %>">
-                <input class="form-control" type="text" name="collectionName" value="<%- collections[i].name %>">
+                <input class="form-control" type="text" name="collectionName" placeholder="Collection Name" value="<%- collections[i].name %>">
               </div>
               <div class="form-group">
-                <input class="form-control" type="text" name="artist" value="<%- collections[i].artist %>">
+                <input class="form-control" type="text" name="artist" placeholder="Artist" value="<%- collections[i].artist %>">
               </div>
               <div class="form-group">
-                <input class="form-control" type="text" name="guests" value="<%- collections[i].guests %>">
+                <input class="form-control" type="text" name="guests" placeholder="Guests" value="<%- collections[i].guests %>">
               </div>
               <div class="form-group">
-                <input class="form-control" type="text" name="year" value="<%- collections[i].year %>">
+                <input class="form-control" type="text" name="year" placeholder="Year" value="<%- collections[i].year %>">
               </div>
               <div class="form-group">
-                <input class="form-control" type="text" name="recordLabel" value="<%- collections[i].label %>">
+                <input class="form-control" type="text" name="recordLabel" placeholder="Record Label" value="<%- collections[i].label %>">
               </div>
               <div class="form-group">
-                <input class="form-control" type="text" name="recordNumber" value="<%- collections[i].recordNumber %>">
+                <input class="form-control" type="text" name="recordNumber" placeholder="Record Number" value="<%- collections[i].recordNumber %>">
               </div>
               <button type="submit" class="btn btn-primary btn-sm">Update Collection Info</button>
             </form>
@@ -189,6 +207,14 @@
               <button class='btn btn-info btn-sm'>Add Track</button>
             </form>
           </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-xs-12">
+          <form method="POST" action="/deleteCollection">
+            <input type="hidden" value="<%- collections[i]._id %>" name="collectionID">
+            <button class="btn btn-danger col-xs-6 col-xs-offset-6 col-sm-3 col-sm-offset-9" type="submit"><span class="glyphicon glyphicon-warning-sign"></span> Delete Collection &amp; Files</button>
+          </form>
         </div>
       </div>
       <hr/>

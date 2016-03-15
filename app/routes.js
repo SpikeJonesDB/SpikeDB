@@ -4,10 +4,46 @@ var multer = require('multer');
 var mongoose = require('mongoose');
 var Collection = require('./models/collection');
 var Tracks = require('./models/tracks');
+var Video = require('./models/video');
+var Image = require('./models/image');
+var Sheet = require('./models/sheet');
 var mkdirp = require('mkdirp');
 var rmdir = require('rimraf');
 
 var appDirectory = "/Users/jeffcarbine/dev/SpikeDB";
+
+// setting up the upload handler
+var storage = multer.diskStorage({
+  // check if there are any conflicts with track or collectionName
+  destination: function (req, file, cb) {
+    var filetype = file.mimetype;
+    var ext = filetype.substring(filetype.indexOf('/')+1);
+    var destination;
+    if(ext == 'jpeg' || ext == 'jpg') {
+      destination = appDirectory + '/archive/music/' + req.newMongoId;
+    } else if (ext == 'mp3') {
+      destination = appDirectory + '/archive/music/' + req.body.id;
+    } else if (ext == 'zip') {
+      destination = appDirectory + '/archive/music/' + req.body.collectionID;
+    } else if (ext == 'mp4') {
+      destination = appDirectory + '/archive/videos';
+    }
+    mkdirp(destination, function (err) { // folder must be created
+      if (err) console.error(err);       // in order to save to it
+    });
+    cb(null, destination);
+  },
+  filename: function (req, file, cb) {
+    var filetype = file.mimetype;
+    var ext = filetype.substring(filetype.indexOf('/')+1);
+    if(ext == 'jpeg' || ext == 'jpg' || ext == 'mp3' || ext == 'mp4') {
+      cb(null, (req.newMongoId + '.' + ext));
+    } else if(ext == 'zip') {
+      cb(null, req.body.collectionID + '.' + ext);
+    }
+  }
+});
+var upload = multer({ storage: storage }); // save new storage to upload function
 
 // app/routes.js
 module.exports = function(app, passport) {
@@ -74,31 +110,6 @@ module.exports = function(app, passport) {
       });
     });
 
-    // setting up the upload handler
-    var storage = multer.diskStorage({
-      // check if there are any conflicts with track or collectionName
-      destination: function (req, file, cb) {
-        var filetype = file.mimetype;
-        var ext = filetype.substring(filetype.indexOf('/')+1);
-        var destination;
-        if(ext == 'jpeg' || ext == 'jpg') {
-          destination = appDirectory + '/archive/music/' + req.newMongoId;
-        } else if (ext == 'mp3') {
-          destination = appDirectory + '/archive/music/' + req.body.id;
-        }
-        mkdirp(destination, function (err) { // folder must be created
-          if (err) console.error(err);       // in order to save to it
-        });
-        cb(null, destination);
-      },
-      filename: function (req, file, cb) {
-        var filetype = file.mimetype;
-        var ext = filetype.substring(filetype.indexOf('/')+1);
-        cb(null, (req.newMongoId + '.' + ext));
-      }
-    });
-    var upload = multer({ storage: storage }); // save new storage to upload function
-
     // add a new collection
     app.post('/addCollection',
       function(req, res, next) {
@@ -107,41 +118,26 @@ module.exports = function(app, passport) {
       },
       upload.single('collectionArt'),
       function(req, res, next) {
-        Collection.find().exec() // get all current collection names to avoid overwriting
-          .then(function(collections) {
-            var currCollectionNames = [];
-            for(i=0;i<collections.length;i++) {
-              currCollectionNames.push(collections[i].name);
-            }
-            return currCollectionNames;
-          }).then(function(currCollectionNames) {
-            // check if collection name exists in the array
-            if (currCollectionNames.indexOf(req.body.collectionName) === -1) {
-              // create a new collection
-              var newCollection = new Collection({
-                _id: req.newMongoId,
-                type:req.body.collectionType,
-                name:req.body.collectionName,
-                artist:req.body.artist,
-                guests:req.body.guests,
-                year:req.body.year,
-                label:req.body.recordLabel,
-                recordNumber:req.body.recordNumber,
-                tracks: [],
-              });
-              newCollection.save(function(err, doc){
-                if(err) {
-                  return next(err);
-                } else {
-                  res.redirect('/audio'); // refresh the page
-                }
-              });
-            } else {
-              // give the user the error message
-              req.flash('collectionMessage', "You can't have two collections with the same name. Please check your collection names and try again.");
-              res.redirect('/audio');
-            }
-          });
+        // create a new collection
+        var newCollection = new Collection({
+          _id: req.newMongoId,
+          type:req.body.collectionType,
+          name:req.body.collectionName,
+          artist:req.body.artist,
+          guests:req.body.guests,
+          year:req.body.year,
+          label:req.body.recordLabel,
+          recordNumber:req.body.recordNumber,
+          tracks: [],
+          download: false,
+        });
+        newCollection.save(function(err, doc){
+          if(err) {
+            return next(err);
+          } else {
+            res.redirect('/audio'); // refresh the page
+          }
+        });
       }
     );
 
@@ -161,7 +157,6 @@ module.exports = function(app, passport) {
         		year:req.body.year,
             label:req.body.recordLabel,
         		recordNumber:req.body.recordNumber,
-            tracks:[],
           },
     		},{
     			new: true
@@ -309,14 +304,179 @@ module.exports = function(app, passport) {
             });
           });
 
+      // change collection information
+      app.post('/addZipFile',
+      upload.single('zipFile'),
+      function(req, res, next) {
+        // match the collection via id instead of name so there
+        // are no conflicts if the name changes
+        Collection
+          .findOneAndUpdate({
+            _id: req.body.collectionID,
+          },{
+            $set: {
+              download: true,
+            },
+          },{
+            new: true
+          })
+          .exec(function(err, doc){
+            if(err) {
+              return next(err);
+            } else {
+              // refresh page and put the user on the collection
+              // they were currently editing
+              res.redirect('/audio#' + req.body.collectionID);
+            }
+          });
+      });
+
+      // change collection information
+      app.post('/removeZipFile',
+      function(req, res, next) {
+        var zipFile = appDirectory + '/archive/music/' + req.body.collectionID + '/' + req.body.collectionID + '.zip';
+        fs.unlink(zipFile);
+        // match the collection via id instead of name so there
+        // are no conflicts if the name changes
+        Collection
+          .findOneAndUpdate({
+            _id: req.body.collectionID,
+          },{
+            $set: {
+              download: false,
+            },
+          },{
+            new: true
+          })
+          .exec(function(err, doc){
+            if(err) {
+              return next(err);
+            } else {
+              // refresh page and put the user on the collection
+              // they were currently editing
+              res.redirect('/audio#' + req.body.collectionID);
+            }
+          });
+      });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     // =====================================
     // VIDEO PAGE ==========================
     // =====================================
 
     app.get('/video', isLoggedIn, function(req, res) {
+        Video
+          .find()
+          .exec()
+          .then(function(data) {
+            res.render('video.ejs', { // passing the returned data to the response body
+                videos: data,
+            });
+          });
+        });
 
-        res.render('video.ejs');
+    // add a new collection
+    app.post('/addVideo',
+      function(req, res, next) {
+        req.newMongoId = mongoose.Types.ObjectId();
+        next();
+      },
+      upload.single('videoFile'),
+      function(req, res, next) {
+        // create a new video
+        var newVideo = new Video({
+          title: req.body.title,
+          year: req.body.year,
+          people: req.body.people
+        });
+        newVideo.save(function(err, doc){
+          if(err) {
+            return next(err);
+          } else {
+            res.redirect('/video'); // refresh the page
+          }
+        });
+      }
+    );
+
+    // change collection information
+    app.post('/updateVideo',
+    function(req, res, next) {
+      // match the collection via id instead of name so there
+      // are no conflicts if the name changes
+      Collection
+        .findOneAndUpdate({
+          _id: req.body.id,
+        },{
+          $set: {
+            title:req.body.title,
+            year:req.body.year,
+            people:req.body.people,
+          },
+        },{
+          new: true
+        })
+        .exec(function(err, doc){
+          if(err) {
+            return next(err);
+          } else {
+            // refresh page and put the user on the video
+            // they were currently editing
+            res.redirect('/video#' + req.body.id);
+          }
+        });
     });
+
+    // delete a collection and all related tracks and files
+    app.post('/deleteVideo',
+    function(req, res, next) {
+      var videoFile = appDirectory + '/archive/videos/' + req.body.id + '.mp4';
+      fs.unlink(videoFile);
+      // get collection from DB and associated tracks collection
+      // and delete them
+      Promise.all([
+        Video.find({'_id':req.body.id}).remove().exec(),
+      ]).then(function(data) {
+        res.redirect('/video');
+      });
+    });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     // =====================================
     // IMAGES PAGE =========================
@@ -366,15 +526,30 @@ module.exports = function(app, passport) {
       });
 
     app.get('/retrieve/videos', function(req, res) {
-      // return all video data
+      Video
+        .find()
+        .exec()
+        .then(function(data) {
+            res.jsonp(data);
+          });
     });
 
     app.get('/retrieve/images', function(req, res) {
-      // return all image data
+      Image
+        .find()
+        .exec()
+        .then(function(data) {
+            res.jsonp(data);
+          });
     });
 
     app.get('/retrieve/sheets', function(req, res) {
-      // return all sheet music data
+      Sheet
+        .find()
+        .exec()
+        .then(function(data) {
+            res.jsonp(data);
+          });
     });
 
     // =====================================
