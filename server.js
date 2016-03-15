@@ -15,6 +15,7 @@ var cookieParser = require('cookie-parser');
 var bodyParser   = require('body-parser');
 var session      = require('express-session');
 var multer       = require('multer');
+var flash        = require('connect-flash');
 
 var configDB = require('./config/database.js');
 
@@ -27,6 +28,7 @@ require('./config/passport')(passport); // pass passport for configuration
 app.use(morgan('dev')); // log every request to the console
 app.use(cookieParser()); // read cookies (needed for auth)
 app.use(bodyParser()); // get information from html forms
+app.use(flash());
 
 app.set('view engine', 'ejs'); // set up ejs for templating
 
