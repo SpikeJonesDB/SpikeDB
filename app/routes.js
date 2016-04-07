@@ -10,7 +10,7 @@ var Sheet = require('./models/sheet');
 var mkdirp = require('mkdirp');
 var rmdir = require('rimraf');
 
-var appDirectory = "/Users/jeffcarbine/dev/SpikeDB";
+var appDirectory = "~/dev/SpikeDB";
 
 // setting up the upload handler
 var storage = multer.diskStorage({
