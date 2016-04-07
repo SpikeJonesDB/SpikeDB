@@ -30,10 +30,10 @@ var storage = multer.diskStorage({
     } else if (ext == 'pdf') {
       destination = appDirectory + '/archive/sheets/';
     }
-    mkdirp(destination, function (err) { // folder must be created
-      if (err) console.error(err);       // in order to save to it
+    mkdirp(destination, function (err) { // folder must be created in order to save to it
+      if (err) console.error(err);
+      cb(null, destination);
     });
-    cb(null, destination);
   },
   filename: function (req, file, cb) {
     var filetype = file.mimetype;
