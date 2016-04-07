@@ -58,7 +58,7 @@
       <div class="row">
       <% for(i = 0; i<videos.length; i++) { %>
         <div class="col-sm-4 col-xs-12 well">
-          <form method="POST" enctype="multipart/form-data">
+          <form method="POST" method="/updateVideo" enctype="multipart/form-data">
             <div class="form-group">
               <input class="form-control" type="text" placeholder="Title" value="<%- videos[i].title %>">
             </div>
@@ -71,7 +71,11 @@
             <div class="form-group">
               <input class="form-control" type="file">
             </div>
-            <button type="submit" class="btn btn-primary">Update Info</button>
+            <button type="submit" class="btn btn-primary col-xs-6">Update Info</button>
+          </form>
+          <form method="POST" action="deleteVideo">
+            <input type="hidden" value="<%- videos[i]._id %>" name="id">
+            <button type="submit" class="btn btn-danger col-xs-6">Delete Video</button>
           </form>
         </div>
       <% } %>

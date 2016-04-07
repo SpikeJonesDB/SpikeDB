@@ -20,13 +20,15 @@ var storage = multer.diskStorage({
     var ext = filetype.substring(filetype.indexOf('/')+1);
     var destination;
     if(ext == 'jpeg' || ext == 'jpg') {
-      destination = appDirectory + '/archive/music/' + req.newMongoId;
+      destination = appDirectory + '/archive/images/';
     } else if (ext == 'mp3') {
       destination = appDirectory + '/archive/music/' + req.body.id;
     } else if (ext == 'zip') {
       destination = appDirectory + '/archive/music/' + req.body.collectionID;
     } else if (ext == 'mp4') {
-      destination = appDirectory + '/archive/videos';
+      destination = appDirectory + '/archive/videos/';
+    } else if (ext == 'pdf') {
+      destination = appDirectory + '/archive/sheets/';
     }
     mkdirp(destination, function (err) { // folder must be created
       if (err) console.error(err);       // in order to save to it
@@ -36,7 +38,16 @@ var storage = multer.diskStorage({
   filename: function (req, file, cb) {
     var filetype = file.mimetype;
     var ext = filetype.substring(filetype.indexOf('/')+1);
-    if(ext == 'jpeg' || ext == 'jpg' || ext == 'mp3' || ext == 'mp4') {
+    if (ext == 'jpeg' || ext == 'jpg') {
+      if(req.body.collectionID) {
+        console.log('CollectionID found!');
+        cb(null, (req.body.collectionID + '.jpeg'));
+      } else if (req.newMongoId) {
+        console.log('NewMongoId found!');
+        console.log(req.newMongoId);
+        cb(null, (req.newMongoId + '.jpeg'));
+      }
+    } else if (ext == 'mp3' || ext == 'mp4' || ext == 'pdf') {
       cb(null, (req.newMongoId + '.' + ext));
     } else if(ext == 'zip') {
       cb(null, req.body.collectionID + '.' + ext);
@@ -151,6 +162,7 @@ module.exports = function(app, passport) {
     			_id: req.body.id,
     		},{
     			$set: {
+            type: req.body.collectionType,
             name:req.body.collectionName,
         		artist:req.body.artist,
         		guests:req.body.guests,
@@ -172,16 +184,24 @@ module.exports = function(app, passport) {
         });
     });
 
+    app.post('/updateArt',
+      upload.single('artFile'), // see line 79
+      function(req, res, next) {
+        // refresh the page
+        res.redirect('/audio');
+      }
+    );
+
     // delete a collection and all related tracks and files
     app.post('/deleteCollection',
     function(req, res, next) {
-      // remove the directory completely, which also removes all
-      // .mp3 and .jpeg files
+      // remove the directory completely, which removes .mp3 and .zip files
       rmdir('/Users/jeffcarbine/dev/SpikeDB/archive/music/' + req.body.collectionID, function(err) {
         if (err) throw err;
-        console.log(req.body.collectionName + ' and all the files associated with it have been deleted.');
       });
-
+      // remove the album art
+      var artFile = appDirectory + '/archive/images/' + req.body.collectionID + '.jpeg';
+      fs.unlink(artFile);
       // get collection from DB and associated tracks collection
       // and delete them
       Promise.all([
@@ -403,6 +423,7 @@ module.exports = function(app, passport) {
       function(req, res, next) {
         // create a new video
         var newVideo = new Video({
+          _id: req.newMongoId,
           title: req.body.title,
           year: req.body.year,
           people: req.body.people
@@ -422,7 +443,7 @@ module.exports = function(app, passport) {
     function(req, res, next) {
       // match the collection via id instead of name so there
       // are no conflicts if the name changes
-      Collection
+      Video
         .findOneAndUpdate({
           _id: req.body.id,
         },{
@@ -483,18 +504,204 @@ module.exports = function(app, passport) {
     // =====================================
 
     app.get('/images', isLoggedIn, function(req, res) {
+        Image
+          .find()
+          .exec()
+          .then(function(data) {
+            res.render('images.ejs', { // passing the returned data to the response body
+                images: data,
+            });
+          });
+        });
 
-        res.render('images.ejs');
+    // add a new collection
+    app.post('/addImage',
+      function(req, res, next) {
+        req.newMongoId = mongoose.Types.ObjectId();
+        next();
+      },
+      upload.single('imageFile'),
+      function(req, res, next) {
+        // create a new video
+        var newImage = new Image({
+          _id: req.newMongoId,
+          title: req.body.title,
+          year: req.body.year,
+          people: req.body.people
+        });
+        newImage.save(function(err, doc){
+          if(err) {
+            return next(err);
+          } else {
+            res.redirect('/images'); // refresh the page
+          }
+        });
+      }
+    );
+
+    // change collection information
+    app.post('/updateImage',
+    function(req, res, next) {
+      // match the collection via id instead of name so there
+      // are no conflicts if the name changes
+      Image
+        .findOneAndUpdate({
+          _id: req.body.id,
+        },{
+          $set: {
+            title:req.body.title,
+            year:req.body.year,
+            people:req.body.people,
+          },
+        },{
+          new: true
+        })
+        .exec(function(err, doc){
+          if(err) {
+            return next(err);
+          } else {
+            // refresh page and put the user on the video
+            // they were currently editing
+            res.redirect('/image#' + req.body.id);
+          }
+        });
     });
+
+    // delete a collection and all related tracks and files
+    app.post('/deleteImage',
+    function(req, res, next) {
+      var imageFile = appDirectory + '/archive/images/' + req.body.id + '.jpeg';
+      fs.unlink(imageFile);
+      // get collection from DB and associated tracks collection
+      // and delete them
+      Promise.all([
+        Image.find({'_id':req.body.id}).remove().exec(),
+      ]).then(function(data) {
+        res.redirect('/images');
+      });
+    });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     // =====================================
     // SHEETS PAGE =========================
     // =====================================
 
     app.get('/sheets', isLoggedIn, function(req, res) {
+        Sheet
+          .find()
+          .exec()
+          .then(function(data) {
+            res.render('sheets.ejs', { // passing the returned data to the response body
+                sheets: data,
+            });
+          });
+        });
 
-        res.render('sheets.ejs');
+    // add a new collection
+    app.post('/addSheet',
+      function(req, res, next) {
+        req.newMongoId = mongoose.Types.ObjectId();
+        next();
+      },
+      upload.single('sheetFile'),
+      function(req, res, next) {
+        // create a new video
+        var newSheet = new Sheet({
+          _id: req.newMongoId,
+          title: req.body.title,
+          year: req.body.year,
+          people: req.body.people
+        });
+        newSheet.save(function(err, doc){
+          if(err) {
+            return next(err);
+          } else {
+            res.redirect('/sheets'); // refresh the page
+          }
+        });
+      }
+    );
+
+    // change collection information
+    app.post('/updateSheet',
+    function(req, res, next) {
+      // match the collection via id instead of name so there
+      // are no conflicts if the name changes
+      Sheet
+        .findOneAndUpdate({
+          _id: req.body.id,
+        },{
+          $set: {
+            title:req.body.title,
+            year:req.body.year,
+            people:req.body.people,
+          },
+        },{
+          new: true
+        })
+        .exec(function(err, doc){
+          if(err) {
+            return next(err);
+          } else {
+            // refresh page and put the user on the video
+            // they were currently editing
+            res.redirect('/sheets#' + req.body.id);
+          }
+        });
     });
+
+    // delete a collection and all related tracks and files
+    app.post('/deleteSheet',
+    function(req, res, next) {
+      var sheetFile = appDirectory + '/archive/sheets/' + req.body.id + '.pdf';
+      fs.unlink(sheetFile);
+      // get collection from DB and associated tracks collection
+      // and delete them
+      Promise.all([
+        Video.find({'_id':req.body.id}).remove().exec(),
+      ]).then(function(data) {
+        res.redirect('/sheets');
+      });
+    });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     // =====================================
     // API ENDPOINTS========================

@@ -1,9 +1,10 @@
 var mongoose = require('mongoose');
 
-var videoSchema = mongoose.Schema({
+var imageSchema = mongoose.Schema({
   title         : String,
   year          : String,
   people        : String,
+  location      : String,
 });
 
-module.exports = mongoose.model('Video', videoSchema);
+module.exports = mongoose.model('Image', imageSchema);
