@@ -31,7 +31,7 @@ var storage = multer.diskStorage({
       destination = appDirectory + '/archive/sheets/';
     }
     mkdirp(destination, function (err) { // folder must be created
-      console.log(err)
+      console.log(destination)
       if (err) return cb(err)
       cb(null, destination);
     });
