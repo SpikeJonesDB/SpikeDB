@@ -4,6 +4,7 @@ var collectionSchema = mongoose.Schema({
   type          : String,
   name          : String,
   artist        : String,
+  composer      : String,
   guests        : String,
   year          : String,
   label         : String,
