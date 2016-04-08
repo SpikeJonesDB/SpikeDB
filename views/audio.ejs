@@ -56,9 +56,6 @@
                   <input type="text" name="artist" class="form-control" placeholder="Artist" required>
                 </div>
                 <div class="form-group">
-                  <input type="text" name="composer" class="form-control" placeholder="Composer" required>
-                </div>
-                <div class="form-group">
                   <input type="text" name="guests" class="form-control" placeholder="Guest Artist(s)">
                 </div>
               </div>
@@ -147,9 +144,6 @@
                 <input class="form-control" type="text" name="artist" placeholder="Artist" value="<%- collections[i].artist %>">
               </div>
               <div class="form-group">
-                <input class="form-control" type="text" name="composer" placeholder="Composer" value="<%- collections[i].composer %>">
-              </div>
-              <div class="form-group">
                 <input class="form-control" type="text" name="guests" placeholder="Guests" value="<%- collections[i].guests %>">
               </div>
               <div class="form-group">
@@ -178,6 +172,7 @@
                       <div class="input-group-addon"><%= (y+1) %></div>
                       <input type="hidden" name="prevTrackName" value="<%- tracks[e].tracks[y].title %>">
                       <input class="form-control" type="text" name="trackName" value="<%- tracks[e].tracks[y].title %>">
+                      <input class="form-control" tupe="text" name="trackComposer" value="<%- tracks[e].tracks[y].composer %>">
                       <textarea class="form-control" type="text" name="trackLyrics"><%- tracks[e].tracks[y].lyrics %></textarea>
                     </div>
                     <div>
@@ -206,6 +201,9 @@
               <input type="hidden" name="collectionName" value="<%- collections[i].name %>">
               <div class="form-group">
                 <input class="form-control" type="text" name="trackName" placeholder="Track Name" required>
+              </div>
+              <div class="form-group">
+                <input class="form-control" type="text" name="trackComposer" placeholder="Composer">
               </div>
               <div class="form-group">
                 <textarea class="form-control" name="trackLyrics" placeholder="Optional Lyrics"></textarea>

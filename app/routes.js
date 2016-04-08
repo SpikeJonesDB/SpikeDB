@@ -136,7 +136,6 @@ module.exports = function(app, passport) {
           type:req.body.collectionType,
           name:req.body.collectionName,
           artist:req.body.artist,
-          composer:req.body.composer,
           guests:req.body.guests,
           year:req.body.year,
           label:req.body.recordLabel,
@@ -167,7 +166,6 @@ module.exports = function(app, passport) {
             type: req.body.collectionType,
             name:req.body.collectionName,
         		artist:req.body.artist,
-            composer:req.body.composer,
         		guests:req.body.guests,
         		year:req.body.year,
             label:req.body.recordLabel,
@@ -235,6 +233,7 @@ module.exports = function(app, passport) {
                     {
                       _id: req.newMongoId,
                       title: req.body.trackName,
+                      composer: req.body.trackComposer,
                       lyrics: req.body.trackLyrics,
                     }
                 }
@@ -254,6 +253,7 @@ module.exports = function(app, passport) {
                 tracks: [{
                   _id: req.newMongoId,
                   title: req.body.trackName,
+                  composer: req.body.trackComposer,
                   lyrics: req.body.trackLyrics,
                 }]
               });
@@ -284,6 +284,7 @@ module.exports = function(app, passport) {
           },{
             $set: { // update the info
                 'tracks.$.title' : req.body.trackName,
+                'tracks.$.composer' : req.body.trackComposer,
                 'tracks.$.lyrics' : req.body.trackLyrics,
             }
           },{

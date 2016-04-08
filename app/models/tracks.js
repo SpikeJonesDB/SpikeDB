@@ -4,6 +4,7 @@ var tracksSchema = mongoose.Schema({
   collectionID      : String,
   tracks            : [{
     title       : String,
+    composer    : String,
     lyrics      : String
   }]
 });
