@@ -620,7 +620,7 @@ module.exports = function(app, passport) {
           });
         });
 
-    // add a new collection
+    // add a new sheet pdf
     app.post('/addSheet',
       function(req, res, next) {
         req.newMongoId = mongoose.Types.ObjectId();
@@ -628,12 +628,11 @@ module.exports = function(app, passport) {
       },
       upload.single('sheetFile'),
       function(req, res, next) {
-        // create a new video
+        // create a new sheet
         var newSheet = new Sheet({
           _id: req.newMongoId,
           title: req.body.title,
           year: req.body.year,
-          people: req.body.people
         });
         newSheet.save(function(err, doc){
           if(err) {
@@ -645,10 +644,10 @@ module.exports = function(app, passport) {
       }
     );
 
-    // change collection information
+    // change sheet information
     app.post('/updateSheet',
     function(req, res, next) {
-      // match the collection via id instead of name so there
+      // match the sheet via id instead of name so there
       // are no conflicts if the name changes
       Sheet
         .findOneAndUpdate({
@@ -657,7 +656,6 @@ module.exports = function(app, passport) {
           $set: {
             title:req.body.title,
             year:req.body.year,
-            people:req.body.people,
           },
         },{
           new: true
@@ -673,12 +671,12 @@ module.exports = function(app, passport) {
         });
     });
 
-    // delete a collection and all related tracks and files
+    // delete a sheet
     app.post('/deleteSheet',
     function(req, res, next) {
       var sheetFile = appDirectory + '/archive/sheets/' + req.body.id + '.pdf';
       fs.unlink(sheetFile);
-      // get collection from DB and associated tracks collection
+      // get sheet from DB and associated tracks collection
       // and delete them
       Promise.all([
         Video.find({'_id':req.body.id}).remove().exec(),
