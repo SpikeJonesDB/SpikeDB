@@ -679,7 +679,7 @@ module.exports = function(app, passport) {
       // get sheet from DB and associated tracks collection
       // and delete them
       Promise.all([
-        Video.find({'_id':req.body.id}).remove().exec(),
+        Sheet.find({'_id':req.body.id}).remove().exec(),
       ]).then(function(data) {
         res.redirect('/sheets');
       });
