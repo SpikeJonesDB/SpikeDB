@@ -2,6 +2,7 @@ var request = require('request');
 var fs = require('fs');
 var multer = require('multer');
 var mongoose = require('mongoose');
+var User = require('./models/user');
 var Collection = require('./models/collection');
 var Tracks = require('./models/tracks');
 var Video = require('./models/video');
@@ -19,13 +20,13 @@ var storage = multer.diskStorage({
     var filetype = file.mimetype;
     var ext = filetype.substring(filetype.indexOf('/')+1);
     var destination;
-    if(ext == 'jpeg' || ext == 'jpg') {
+    if(ext == 'jpeg' || ext == 'jpg' || ext == 'tiff') {
       destination = appDirectory + '/archive/images/';
-    } else if (ext == 'mp3') {
+    } else if (ext == 'mp3' || ext == 'wav') {
       destination = appDirectory + '/archive/music/' + req.body.id;
     } else if (ext == 'zip') {
       destination = appDirectory + '/archive/music/' + req.body.collectionID;
-    } else if (ext == 'mp4') {
+    } else if (ext == 'mp4' || ext == 'avi') {
       destination = appDirectory + '/archive/videos/';
     } else if (ext == 'pdf') {
       destination = appDirectory + '/archive/sheets/';
@@ -39,7 +40,7 @@ var storage = multer.diskStorage({
   filename: function (req, file, cb) {
     var filetype = file.mimetype;
     var ext = filetype.substring(filetype.indexOf('/')+1);
-    if (ext == 'jpeg' || ext == 'jpg') {
+    if (ext == 'jpeg' || ext == 'jpg' || ext == 'tiff') {
       if(req.body.collectionID) {
         console.log('CollectionID found!');
         cb(null, (req.body.collectionID + '.jpeg'));
@@ -48,7 +49,7 @@ var storage = multer.diskStorage({
         console.log(req.newMongoId);
         cb(null, (req.newMongoId + '.jpeg'));
       }
-    } else if (ext == 'mp3' || ext == 'mp4' || ext == 'pdf') {
+    } else if (ext == 'mp3' || ext == 'wav' || ext == 'mp4' || ext == 'avi' || ext == 'pdf') {
       cb(null, (req.newMongoId + '.' + ext));
     } else if(ext == 'zip') {
       cb(null, req.body.collectionID + '.' + ext);
@@ -90,18 +91,39 @@ module.exports = function(app, passport) {
     // show the signup form
     // uncomment to add a new user, comment out in production.
     app.get('/signup', function(req, res) {
-
-        // render the page and pass in any flash data if it exists
-        res.render('signup.ejs', { message: req.flash('signupMessage') });
-    });
+      User
+        .find()
+        .exec()
+        .then(function(data) {
+          if(req.user.local.email === 'spikeadmin') {
+            res.render('signup.ejs', {
+              message: req.flash('signupMessage'),
+              users: data,
+              user : req.user // get the user out of session and pass to template
+            });
+          } else {
+            res.render('index.ejs')
+          }
+        });
+      });
 
     // process the signup form
     app.post('/signup', passport.authenticate('local-signup', {
-        successRedirect : '/audio', // redirect to the secure profile section
+        successRedirect : '/signup', // redirect to the secure profile section
         failureRedirect : '/signup', // redirect back to the signup page if there is an error
         failureFlash : true // allow flash messages
     }));
 
+    // delete a user from the database
+    app.post('/deleteUser',
+    function(req, res, next) {
+      console.log(req.body);
+      Promise.all([
+        User.find({'_id':req.body.userid}).remove().exec(),
+      ]).then(function(data) {
+        res.redirect('/signup');
+      });
+    });
 
     // =====================================
     // AUDIO PAGE ==========================
@@ -118,6 +140,7 @@ module.exports = function(app, passport) {
         res.render('audio.ejs', { // passing the returned data to the response body
             collections: collections,
             tracks: tracks,
+            user : req.user // get the user out of session and pass to template
         });
       });
     });
@@ -413,6 +436,7 @@ module.exports = function(app, passport) {
           .then(function(data) {
             res.render('video.ejs', { // passing the returned data to the response body
                 videos: data,
+                user : req.user // get the user out of session and pass to template
             });
           });
         });
@@ -514,6 +538,7 @@ module.exports = function(app, passport) {
           .then(function(data) {
             res.render('images.ejs', { // passing the returned data to the response body
                 images: data,
+                user : req.user // get the user out of session and pass to template
             });
           });
         });
@@ -616,6 +641,7 @@ module.exports = function(app, passport) {
           .then(function(data) {
             res.render('sheets.ejs', { // passing the returned data to the response body
                 sheets: data,
+                user : req.user // get the user out of session and pass to template
             });
           });
         });

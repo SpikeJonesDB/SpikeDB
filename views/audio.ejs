@@ -20,6 +20,9 @@
         <li role="presentation"><a href="video">Video</a></li>
         <li role="presentation"><a href="images">Images</a></li>
         <li role="presentation"><a href="sheets">Sheet Music</a></li>
+        <% if(user.local.email === 'spikeadmin') { %>
+        <li role="presentation"><a href="signup">Users</a></li>
+        <% } %>
       </ul>
     </div><!-- /.navbar-collapse -->
 
